@@ -313,6 +313,7 @@ pub enum Outcome {
     Solved(Vec<Findings>),
 }
 
+#[allow(dead_code)]
 pub fn difficulty_of_findings_vec(findings_vec: &Vec<Findings>) -> (Option<u32>, Option<u32>) {
     let mut max_local = None;
     let mut max_global = None;
