@@ -2,6 +2,7 @@ extern crate itertools;
 extern crate once_cell;
 extern crate regex;
 extern crate serde;
+extern crate rayon;
 
 mod constraint;
 mod defn;

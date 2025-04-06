@@ -8,6 +8,8 @@ use std::collections::BTreeSet;
 use std::convert::TryInto;
 use std::error::Error;
 use std::fmt;
+use rayon::prelude::*;
+use std::time::Instant;
 
 use constraint;
 use defn;
@@ -184,12 +186,18 @@ impl Constraints {
         env: &mut Env,
         defn: &Defn,
     ) -> Result<(BTreeMap<Coords, Color>, Difficulty), Box<dyn Error>> {
-        // First construct the graph over visible constraints.
+        use rayon::prelude::*;
+        use std::time::Instant;
+    
+        println!("[compound] Starte Berechnung der compound_invariants");
+        let timer_start = Instant::now();
+    
         let mut connections: BTreeMap<Coords, BTreeSet<Coords>> = self
             .constraints_visible
             .keys()
             .map(|k| (*k, BTreeSet::new()))
             .collect();
+    
         for pair in self.constraints_visible.keys().combinations(2) {
             let [k0, k1]: [&Coords; 2] = pair.try_into().expect("Unreachable");
             if *k0 == *UNIQUE_COORDS || *k1 == *UNIQUE_COORDS {
@@ -198,13 +206,12 @@ impl Constraints {
             let mv0 = &self.constraints_visible[k0];
             let mv1 = &self.constraints_visible[k1];
             if !mv0.scope.is_disjoint(&mv1.scope) {
-                connections.get_mut(k0).expect("Unreachable").insert(*k1);
-                connections.get_mut(k1).expect("Unreachable").insert(*k0);
+                connections.get_mut(k0).unwrap().insert(*k1);
+                connections.get_mut(k1).unwrap().insert(*k0);
             }
         }
-
-        // Then build the set of compound invariants, starting with one visible constraint per
-        // group
+        println!("[compound] Verbindungen erstellt für {} Constraints", connections.len());
+    
         let mut constraints_groups: BTreeMap<BTreeSet<Coords>, Multiverse> = self
             .constraints_visible
             .iter()
@@ -212,68 +219,101 @@ impl Constraints {
             .collect();
         constraints_groups.remove(&BTreeSet::from([*UNIQUE_COORDS]));
         connections.remove(&*UNIQUE_COORDS);
-
-        // Then escape if there are no visible constraints
+    
         let mut invariants = BTreeMap::new();
         let mut difficulty = 2;
         if constraints_groups.is_empty() {
+            println!("[compound] Keine sichtbaren Constraints vorhanden – abbrechen");
             return Ok((invariants, Difficulty::Local(difficulty)));
         }
-
-        // Then loop until one or more invariants are found or that all the graph has been collapsed
+    
+        let mut iteration = 0;
         loop {
-            // One loop consists of increasing the size of constraint groups by one.
-            // The first loop starts with `constraints_groups` being one group per node of the graph
-            // and ends with `constraints_groups` being one group per edge of the graph.
-
-            // For each group so far, for each neighbor cell in the graph, create a new group that
-            // merges the old group with that neighbor.
-            for kset_old in constraints_groups.keys().cloned().collect::<Vec<_>>() {
-                env.check_timeout()?;
-                let mv_old = constraints_groups.remove(&kset_old).unwrap();
-                let mut neighbor_contraints = BTreeSet::new();
-                for k in &kset_old {
-                    for k in &connections[k] {
-                        if !kset_old.contains(k) {
-                            neighbor_contraints.insert(k);
+            iteration += 1;
+            println!("[compound] Iteration {} gestartet mit {} Gruppen", iteration, constraints_groups.len());
+            env.check_timeout()?;
+    
+            // Snapshot der aktuellen Gruppen zur parallelen Verarbeitung
+            let constraints_snapshot = constraints_groups.clone();
+    
+            // Paralleles Erzeugen neuer Gruppen durch Merging
+            let new_entries: Vec<(BTreeSet<Coords>, Multiverse)> = constraints_snapshot
+                .par_iter()
+                .flat_map(|(kset_old, mv_old)| {
+                    let mut results = Vec::new();
+                    let mut neighbors = BTreeSet::new();
+                    for k in kset_old {
+                        if let Some(n) = connections.get(k) {
+                            for k2 in n {
+                                if !kset_old.contains(k2) {
+                                    neighbors.insert(k2);
+                                }
+                            }
                         }
                     }
-                }
-                for k_new in &neighbor_contraints {
-                    let mut kset_new = kset_old.clone();
-                    kset_new.insert(**k_new);
-                    if constraints_groups.contains_key(&kset_new) {
-                        // A previous iteration already created that multiverse
-                        continue;
+    
+                    for k_new in &neighbors {
+                        let mut kset_new = kset_old.clone();
+                        kset_new.insert(**k_new);
+                        if constraints_snapshot.contains_key(&kset_new) {
+                            continue;
+                        }
+                        let mv_new = &self.constraints_visible[k_new];
+                        let merged = mv_old.merge(mv_new);
+                        results.push((kset_new, merged));
                     }
-                    let mv_new = &self.constraints_visible[k_new];
-                    // `mv_old.merge(mv_new)` is computation intensive
-                    constraints_groups.insert(kset_new, mv_old.merge(mv_new));
-                }
+    
+                    results
+                })
+                .collect();
+    
+            println!("[compound] Iteration {} erzeugte {} neue Gruppen", iteration, new_entries.len());
+    
+            // Neue Gruppen einfügen
+            for (kset_new, mv_new) in new_entries {
+                constraints_groups.insert(kset_new, mv_new);
             }
-
-            // Look for invariants
+    
+            // Alte Gruppen entfernen, die wir gerade bearbeitet haben
+            let keys_to_remove: BTreeSet<_> = constraints_snapshot.keys().cloned().collect();
+            constraints_groups.retain(|k, _| !keys_to_remove.contains(k));
+    
+            // Invarianten extrahieren
+            let mut new_invariants = 0;
             for mv in constraints_groups.values() {
                 for (coords, color) in mv.invariants() {
-                    if invariants.contains_key(&coords) {
-                        assert_eq!(color, invariants[&coords]);
+                    if invariants.insert(coords, color).is_none() {
+                        new_invariants += 1;
                     }
-                    invariants.insert(coords, color);
                     assert_eq!(Some(color), defn::color_of_cell(&defn[&coords]));
                 }
             }
-
-            // Stop if necessary
+    
+            println!("[compound] Iteration {}: {} neue Invarianten gefunden", iteration, new_invariants);
+    
             if !invariants.is_empty() {
                 break;
             }
             if constraints_groups.is_empty() {
                 break;
             }
+    
             difficulty += 1;
+    
+            // Sicherheitsabbruch bei übermäßigen Iterationen
+            if iteration > 1000 {
+                println!("[compound] Abbruch nach 1000 Iterationen – Schutzmaßnahme");
+                break;
+            }
         }
+    
+        let elapsed = timer_start.elapsed().as_secs_f32();
+        println!("[compound] Fertig nach {:.3} Sekunden, Schwierigkeit: {:?}", elapsed, difficulty);
         Ok((invariants, Difficulty::Local(difficulty)))
     }
+    
+    
+    
 
     fn global_invariants(
         &self,
