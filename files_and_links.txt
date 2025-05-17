@@ -1,15 +1,30 @@
-Level von https://www.reddit.com/r/hexcellslevels/
+Levels from https://www.reddit.com/r/hexcellslevels/
 
 
-explore_black_cells (Easy-Medium): https://www.reddit.com/r/hexcellslevels/comments/1d7t1x3/level_explore_black_cells_easymedium/
+explore_black_cells (Easy-Medium): 
+https://www.reddit.com/r/hexcellslevels/comments/1d7t1x3/level_explore_black_cells_easymedium/
 
-the_trial: https://www.reddit.com/r/hexcellslevels/comments/gcb9gd/level_the_trial_medium/
+the_trial: 
+https://www.reddit.com/r/hexcellslevels/comments/gcb9gd/level_the_trial_medium/
 
 XOXO Gossip Girl (Medium):
 https://www.reddit.com/r/hexcellslevels/comments/1ho4tgl/levelpack_xoxo_gossip_girl_medium/
-gg_1, gg_2, gg_3, gg_4, gg_5
+Only Levels 1 and 2 
+gg_1, gg_2, 
 
 
-Minimal Levels #2 (Easy-Hard): (eher Easy-Medium!)
+Minimal Levels #2 (Easy-Hard):
 https://www.reddit.com/r/hexcellslevels/comments/1d3tdtf/level_minimal_levels_2_easyhard/
 ml_1, ml_2, ml_3
+
+Hard Little Hexagon (Hard):
+https://www.reddit.com/r/hexcellslevels/comments/it0rag/level_hard_little_hexagon_hard/
+hlh
+
+It's Hexcells O'Clock (Medium):
+https://www.reddit.com/r/hexcellslevels/comments/is384q/level_its_hexcells_oclock_medium/
+ihoc
+
+Two Vanilla Levels [Medium Hard]:
+https://www.reddit.com/r/hexcellslevels/comments/5qryw4/level_pack_two_vanilla_levels_medium_hard/
+vanilla
