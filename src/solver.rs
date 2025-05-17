@@ -8,8 +8,6 @@ use std::collections::BTreeSet;
 use std::convert::TryInto;
 use std::error::Error;
 use std::fmt;
-use rayon::prelude::*;
-use std::time::Instant;
 
 use constraint;
 use defn;
@@ -210,7 +208,7 @@ impl Constraints {
                 connections.get_mut(k1).unwrap().insert(*k0);
             }
         }
-        println!("[compound] Verbindungen erstellt für {} Constraints", connections.len());
+        println!("[compound] Verbindungen erstellt fuer {} Constraints", connections.len());
     
         let mut constraints_groups: BTreeMap<BTreeSet<Coords>, Multiverse> = self
             .constraints_visible
@@ -223,7 +221,7 @@ impl Constraints {
         let mut invariants = BTreeMap::new();
         let mut difficulty = 2;
         if constraints_groups.is_empty() {
-            println!("[compound] Keine sichtbaren Constraints vorhanden – abbrechen");
+            println!("[compound] Keine sichtbaren Constraints vorhanden - abbrechen");
             return Ok((invariants, Difficulty::Local(difficulty)));
         }
     
@@ -302,7 +300,7 @@ impl Constraints {
     
             // Sicherheitsabbruch bei übermäßigen Iterationen
             if iteration > 1000 {
-                println!("[compound] Abbruch nach 1000 Iterationen – Schutzmaßnahme");
+                println!("[compound] Abbruch nach 1000 Iterationen - Schutzmaßnahme");
                 break;
             }
         }
