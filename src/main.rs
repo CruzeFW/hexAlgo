@@ -27,7 +27,7 @@ fn main_stdin() -> Result<(), Box<dyn Error>> {
     let defn = defn::of_string(&strdefn)?;
     let mut env = env::Env::new(3600 * 24 * 30);
 
-    let start_time = Instant::now(); // Startzeit erfassen
+    let start_time = Instant::now(); // get starttime
     let outcome = solver::solve(&mut env, &defn, true); // set verbose to false to disable debug println
     let elapsed_time = start_time.elapsed();
 
@@ -48,7 +48,7 @@ fn main_tsp() -> Result<(), Box<dyn Error>> {
     }
     let defn = defn::of_string(&strdefn)?;
     let mut env = env::Env::new(10);
-    let start_time = Instant::now(); // Startzeit erfassen
+    let start_time = Instant::now(); // get starttime
     let outcome = tsp_solver::run(&mut env, &defn, true);
     let elapsed_time = start_time.elapsed();
 
