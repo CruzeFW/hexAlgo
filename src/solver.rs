@@ -300,7 +300,7 @@ impl Constraints {
     
             // Sicherheitsabbruch bei übermäßigen Iterationen
             if iteration > 1000 {
-                println!("[compound] Abbruch nach 1000 Iterationen - Schutzmaßnahme");
+                println!("[compound] Abbruch nach 1000 Iterationen");
                 break;
             }
         }
